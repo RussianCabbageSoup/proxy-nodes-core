@@ -18,4 +18,8 @@ export default class ApiError extends Error {
     static internal(message: string) {
         return new ApiError(500, message);
     }
+
+    static badGateway(message: string) {
+        return new ApiError(502, message);
+    }
 }

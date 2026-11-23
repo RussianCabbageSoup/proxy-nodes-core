@@ -26,8 +26,9 @@ class Service {
         return { alive: r, count: r.length, totalCount: hosts.split(',').length };
     }
 
-    async request(targetUrl: string) {
+    async request(targetUrl: string, method: string) {
         if (!targetUrl) throw ApiError.badRequest('targetUrl is not defined');
+        if (!method) throw ApiError.badRequest('method is not defined');
 
         const nodes = await this.getAlive();
         if (nodes.alive.length < 2) throw ApiError.internal('Too few proxies');
@@ -44,24 +45,32 @@ class Service {
         const firstNode = chain[0];
         if (!firstNode) throw ApiError.internal('Failed to choose proxy');
 
-        // try {
-        //     const { data } = await axios.post(`${firstNode.domain}/proxy`, {
-        //         targetUrl,
-        //         length: chain.length,
-        //         chain,
-        //         currentStep: 1
-        //     }, { timeout: 10000 });
-        // } catch (error) {
-
-        // }
-
-        // testing
-        return {
+        const requestData = {
             targetUrl,
+            method,
             length: chain.length,
             chain,
-            currentStep: 1
+            currentIndex: 0
         };
+
+        console.log('Request Data: ', requestData);
+
+        try {
+            const start = performance.now();
+            const { data } = await axios.post(`${firstNode.domain}/proxy`, requestData, { timeout: 10000 });
+            return { 
+                response: data, 
+                delay: `${Math.round(performance.now() - start)} ms`,
+                chainLength: chain.length, 
+                path: chain.map(i => i?.domain)
+            };
+        } catch (error) {
+            if (error instanceof ApiError) throw error;
+            if (axios.isAxiosError(error)) {
+                throw ApiError.badGateway(`Proxy chain failed: ${error.message}`)
+            };
+            throw ApiError.internal('Unexpected proxy error');
+        }
     }
 }
 

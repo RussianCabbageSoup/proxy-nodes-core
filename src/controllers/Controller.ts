@@ -14,9 +14,9 @@ class Controller {
 
     async request(req: Request, res: Response, next: NextFunction) {
         try {
-            const { targetUrl } = req.body || {};
+            const { targetUrl, method } = req.body || {};
 
-            const data = await Service.request(targetUrl);
+            const data = await Service.request(targetUrl, method);
 
             return res.json(data);
         } catch (error) {
